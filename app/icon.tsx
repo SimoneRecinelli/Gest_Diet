@@ -14,10 +14,9 @@ export default function Icon() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          borderRadius: '128px', // Bordo arrotondato morbido per PWA standard
+          borderRadius: '128px',
         }}
       >
-        {/* Stessa icona, ma proporzionata in grande */}
         <svg 
           width="240" 
           height="240" 
