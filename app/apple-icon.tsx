@@ -1,26 +1,26 @@
 import { ImageResponse } from 'next/og';
 
-export const size = { width: 180, height: 180 };
+export const size = { width: 512, height: 512 };
 export const contentType = 'image/png';
 
-export default function AppleIcon() {
+export default function Icon() {
   return new ImageResponse(
     (
       <div
         style={{
-          // Gradiente moderno dal verde acqua chiaro al verde scuro
           background: 'linear-gradient(to bottom right, #2DD4BF, #0F766E)',
           width: '100%',
           height: '100%',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          borderRadius: '128px',
         }}
       >
-        {/* SVG di una Mela Minimalista in bianco */}
         <svg 
-          width="90" 
-          height="90" 
+          style={{ transform: 'translate(10px, 6px)' }} /* <-- Compensazione ottica proporzionata al formato gigante */
+          width="240" 
+          height="240" 
           viewBox="0 0 24 24" 
           fill="none" 
           stroke="white" 
