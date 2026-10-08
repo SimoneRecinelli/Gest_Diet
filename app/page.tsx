@@ -20,7 +20,7 @@ const getFoodIcon = (category: string, name: string) => {
   if (lowerName.includes('parmigiano') || lowerName.includes('grana') || lowerName.includes('pecorino') || lowerName.includes('mozzarella') || lowerName.includes('sottilette')) return '🧀';
   if (lowerName.includes('pollo') || lowerName.includes('tacchino')) return '🍗';
   if (lowerName.includes('vitellone') || lowerName.includes('maiale') || lowerName.includes('bresaola')) return '🥩';
-  if (lowerName.includes('pesce') || lowerName.includes('rospo') || lowerName.includes('salmone') || lowerName.includes('tonno') || lowerName.includes('polpo')) return '🐟';
+  if (lowerName.includes('pesce') || lowerName.includes('rana pescatrice') || lowerName.includes('sogliola') || lowerName.includes('palombo') || lowerName.includes('salmone') || lowerName.includes('tonno') || lowerName.includes('polpo') || lowerName.includes('insalata di mare')) return '🐟';
   if (lowerName.includes('uova')) return '🥚';
   if (lowerName.includes('olio')) return '🫒';
   if (lowerName.includes('nutella')) return '🍫';

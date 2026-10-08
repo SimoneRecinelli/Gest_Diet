@@ -71,7 +71,8 @@ export default function ListaSpesa() {
           title: 'Cena',
           items: [
             { id: 18, name: "Petto di Pollo", qty: "600g" },
-            { id: 19, name: "Coda di Rospo (o altro pesce)", qty: "600g" },
+            // Qui ho aggiornato il pesce con tutte le alternative!
+            { id: 19, name: "Rana pescatrice (o Sogliola, Palombo, Insalata mare, Salmone aff.)", qty: "600g" },
             { id: 20, name: "Vitellone magro", qty: "300g" },
           ]
         },
