@@ -2,16 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 
-// Funzione helper per assegnare l'icona in base al nome o alla categoria del cibo
+// Helper per assegnare l'icona
 const getFoodIcon = (category: string, name: string) => {
   const lowerName = name.toLowerCase();
-  
   if (lowerName.includes('banana') || lowerName.includes('banane')) return '🍌';
   if (lowerName.includes('fragola') || lowerName.includes('fragole')) return '🍓';
   if (lowerName.includes('mela')) return '🍎';
   if (lowerName.includes('ananas')) return '🍍';
   if (lowerName.includes('uva')) return '🍇';
-
   if (lowerName.includes('latte')) return '🥛';
   if (lowerName.includes('yogurt') || lowerName.includes('fruyo')) return '🍧'; 
   if (lowerName.includes('muesli') || lowerName.includes('cereali') || lowerName.includes('avena')) return '🥣';
@@ -37,12 +35,27 @@ const getFoodIcon = (category: string, name: string) => {
   return '🍽️'; 
 };
 
+// NUOVO HELPER: Calcola i cucchiai in automatico
+const getSpoonsInfo = (name: string, qty: number, unit: string) => {
+  if (unit.toLowerCase() !== 'g' && unit.toLowerCase() !== 'ml') return null;
+  
+  const lowerName = name.toLowerCase();
+  if (lowerName.includes('olio') || lowerName.includes('parmigiano') || lowerName.includes('grana')) {
+    const grandi = qty / 10;
+    const piccoli = qty / 5;
+    
+    // Evita i decimali se il numero è intero (es. mostra "1" invece di "1.0")
+    const formatNumber = (num: number) => num % 1 === 0 ? num : num.toFixed(1);
+    
+    return `${formatNumber(grandi)} cucchiai grandi rasi (o ${formatNumber(piccoli)} piccoli)`;
+  }
+  return null;
+};
+
 export default function Dashboard() {
   const [selectedDay, setSelectedDay] = useState(1);
   const [diet, setDiet] = useState<Record<string, any[]>>({});
   const [loading, setLoading] = useState(true);
-  
-  // Stato per gestire l'apertura/chiusura delle alternative
   const [expandedItems, setExpandedItems] = useState<Record<number, boolean>>({});
 
   const days = [
@@ -69,7 +82,6 @@ export default function Dashboard() {
         }, {});
         
         setDiet(grouped);
-        // Resetta le tendine aperte quando si cambia giorno
         setExpandedItems({});
       } catch (error) {
         console.error("Errore nel caricamento della dieta", error);
@@ -80,18 +92,12 @@ export default function Dashboard() {
     fetchDiet();
   }, [selectedDay]);
 
-  // Funzione per alternare la visibilità delle alternative
   const toggleAlternatives = (itemId: number) => {
-    setExpandedItems(prev => ({
-      ...prev,
-      [itemId]: !prev[itemId]
-    }));
+    setExpandedItems(prev => ({ ...prev, [itemId]: !prev[itemId] }));
   };
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900 pb-20">
-      
-      {/* Top Navbar */}
       <header className="bg-white border-b border-slate-200 px-6 py-5 sticky top-0 z-10 shadow-sm">
         <div className="max-w-3xl mx-auto flex justify-between items-center">
           <div>
@@ -110,13 +116,10 @@ export default function Dashboard() {
       </header>
 
       <main className="max-w-3xl mx-auto px-4 md:px-6 mt-8 space-y-8">
-        
-        {/* Selettore Giorni a larghezza intera */}
         <section>
           <div className="flex items-center justify-between mb-4 px-1">
             <h2 className="text-lg font-bold text-slate-800">Seleziona Giorno</h2>
           </div>
-          {/* Utilizziamo flex-1 per far occupare a ogni bottone la stessa porzione dello spazio totale */}
           <div className="flex w-full gap-1.5 sm:gap-2 md:gap-3 pb-2">
             {days.map((day) => (
               <button
@@ -137,7 +140,6 @@ export default function Dashboard() {
           </div>
         </section>
 
-        {/* Timeline dei Pasti Dinamica */}
         <section className="bg-white rounded-3xl border border-slate-200 shadow-md overflow-hidden">
           <div className="p-5 border-b border-slate-100 bg-white flex justify-between items-center">
             <h2 className="text-xl font-extrabold text-slate-800">
@@ -146,7 +148,6 @@ export default function Dashboard() {
           </div>
           
           <div className="p-5 md:p-6 space-y-10">
-            
             {loading ? (
               <div className="animate-pulse flex flex-col gap-6">
                 <div className="h-20 bg-slate-100 rounded-xl w-full"></div>
@@ -164,7 +165,6 @@ export default function Dashboard() {
                   <div className="space-y-3">
                     {items.map((item, idx) => (
                       <React.Fragment key={item.item_id}>
-                        
                         {item.is_cheat_meal ? (
                           <div className="bg-gradient-to-r from-teal-50 to-white border border-teal-100 rounded-2xl p-4 text-center shadow-sm">
                             <span className="text-3xl block mb-2">🍕</span>
@@ -174,18 +174,34 @@ export default function Dashboard() {
                         ) : (
                           <div className="bg-slate-50 border border-slate-100 hover:border-teal-100 transition-colors rounded-2xl p-4 shadow-sm flex flex-col gap-3">
                             
-                            {/* Alimento Principale */}
-                            <div className="flex justify-between items-center">
+                            <div className="flex justify-between items-center flex-wrap gap-2">
                               <div className="flex items-center gap-3">
                                 <span className="text-2xl drop-shadow-sm">{getFoodIcon(item.food_category, item.food_name)}</span>
                                 <span className="text-base font-bold text-slate-800">{item.food_name}</span>
                               </div>
-                              <span className="text-sm font-black text-slate-900 bg-white px-2 py-1 rounded-lg border border-slate-200 shadow-sm">
-                                {item.quantity_numeric}{item.quantity_unit}
-                              </span>
+                              
+                              {/* Box Quantità con conversione automatica cucchiai se applicabile */}
+                              <div className="flex items-center gap-2">
+                                {getSpoonsInfo(item.food_name, item.quantity_numeric, item.quantity_unit) && (
+                                  <span className="text-[10px] font-bold text-teal-700 bg-teal-50/80 px-2 py-1 rounded-lg border border-teal-100 shadow-sm hidden sm:inline-block">
+                                    {getSpoonsInfo(item.food_name, item.quantity_numeric, item.quantity_unit)}
+                                  </span>
+                                )}
+                                <span className="text-sm font-black text-slate-900 bg-white px-2 py-1 rounded-lg border border-slate-200 shadow-sm">
+                                  {item.quantity_numeric}{item.quantity_unit}
+                                </span>
+                              </div>
+                              
+                              {/* Versione mobile del badge dei cucchiai (va a capo) */}
+                              {getSpoonsInfo(item.food_name, item.quantity_numeric, item.quantity_unit) && (
+                                <div className="w-full sm:hidden text-right">
+                                  <span className="text-[10px] font-bold text-teal-700 bg-teal-50/80 px-2 py-1 rounded-lg border border-teal-100 shadow-sm">
+                                    {getSpoonsInfo(item.food_name, item.quantity_numeric, item.quantity_unit)}
+                                  </span>
+                                </div>
+                              )}
                             </div>
                             
-                            {/* Box Alternative a Scomparsa */}
                             {item.alternatives && item.alternatives.length > 0 && (
                               <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm mt-1 transition-all">
                                 <button 
@@ -205,15 +221,23 @@ export default function Dashboard() {
                                 </button>
                                 
                                 {expandedItems[item.item_id] && (
-                                <div className="p-3 flex flex-col gap-2.5 border-t border-slate-100 bg-slate-50/50">
-                                  {item.alternatives.map((alt: any, altIdx: number) => (
-                                    <div key={altIdx} className="flex justify-between items-center pl-1">
-                                      <span className="text-xs font-medium text-slate-600">{alt.name}</span>
-                                      <span className="text-xs font-bold text-slate-800">{alt.qty}{alt.unit}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
+                                  <div className="p-3 flex flex-col gap-2.5 border-t border-slate-100 bg-slate-50/50">
+                                    {item.alternatives.map((alt: any, altIdx: number) => (
+                                      <div key={altIdx} className="flex justify-between items-center pl-1 flex-wrap gap-1">
+                                        <span className="text-xs font-medium text-slate-600">{alt.name}</span>
+                                        
+                                        <div className="flex items-center gap-2">
+                                          {getSpoonsInfo(alt.name, alt.qty, alt.unit) && (
+                                            <span className="text-[9px] font-semibold text-teal-600 bg-teal-50 px-1.5 py-0.5 rounded border border-teal-100">
+                                              {getSpoonsInfo(alt.name, alt.qty, alt.unit)}
+                                            </span>
+                                          )}
+                                          <span className="text-xs font-bold text-slate-800">{alt.qty}{alt.unit}</span>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>
@@ -224,10 +248,8 @@ export default function Dashboard() {
                 </div>
               ))
             )}
-
           </div>
         </section>
-
       </main>
     </div>
   );
