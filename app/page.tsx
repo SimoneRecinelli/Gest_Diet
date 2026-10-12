@@ -53,7 +53,15 @@ const getSpoonsInfo = (name: string, qty: number, unit: string) => {
 };
 
 export default function Dashboard() {
-  const [selectedDay, setSelectedDay] = useState(1);
+  const [selectedDay, setSelectedDay] = useState(() => {
+  if (typeof window !== 'undefined') {
+    // getDay() restituisce da 0 (Domenica) a 6 (Sabato). 
+    // Lo convertiamo per far corrispondere la tua lista (Lunedì = 1, Domenica = 7)
+    const day = new Date().getDay();
+    return day === 0 ? 7 : day;
+  }
+  return 1; // Fallback temporaneo per il rendering lato server
+});
   const [diet, setDiet] = useState<Record<string, any[]>>({});
   const [loading, setLoading] = useState(true);
   const [expandedItems, setExpandedItems] = useState<Record<number, boolean>>({});
