@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import BottomNav from '../components/BottomNav';
 import { DAYS, dayIdOf, dayOfMonth, formatLong, weekKeys } from '../lib/dates';
 import { formatNumber, formatQty, spoonsLabel } from '../lib/format';
+import { getFoodIcon } from '../lib/food-icons';
 import {
   groupByMeal,
   isFreeMealChooser,
@@ -32,6 +33,19 @@ function Chevron({ open }: { open: boolean }) {
   );
 }
 
+function FoodIcon({ name, tinted, small }: { name: string; tinted?: boolean; small?: boolean }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`flex shrink-0 items-center justify-center ${
+        small ? 'size-8 rounded-lg text-lg' : 'size-10 rounded-xl text-[22px]'
+      } ${tinted ? 'bg-white' : 'bg-surface'}`}
+    >
+      {getFoodIcon(name)}
+    </span>
+  );
+}
+
 function Chip({ children }: { children: React.ReactNode }) {
   return (
     <span className="rounded-full bg-brand px-2.5 py-1 text-[13px] font-semibold text-white">
@@ -48,9 +62,12 @@ function ItemRow({ item, tinted }: { item: DietItem; tinted: boolean }) {
         tinted ? 'border-brand/20' : 'border-line'
       }`}
     >
-      <div className="flex flex-col gap-0.5 py-2">
-        <span className="text-base font-medium">{item.food_name}</span>
-        {spoons && <span className="text-sm text-muted">{spoons}</span>}
+      <div className="flex min-w-0 items-center gap-3 py-2">
+        <FoodIcon name={item.food_name} tinted={tinted} />
+        <div className="flex flex-col gap-0.5">
+          <span className="text-base font-medium">{item.food_name}</span>
+          {spoons && <span className="text-sm text-muted">{spoons}</span>}
+        </div>
       </div>
       <span className="whitespace-nowrap text-base font-bold">
         {formatQty(item.quantity_numeric, item.quantity_unit)}
@@ -88,9 +105,12 @@ function AlternativesList({ item, tinted }: { item: DietItem; tinted: boolean })
                   i > 0 ? 'border-t border-line' : ''
                 }`}
               >
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-[15px] font-medium">{alt.name}</span>
-                  {spoons && <span className="text-sm text-muted">{spoons}</span>}
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <FoodIcon name={alt.name} small />
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[15px] font-medium">{alt.name}</span>
+                    {spoons && <span className="text-sm text-muted">{spoons}</span>}
+                  </div>
                 </div>
                 <span className="whitespace-nowrap text-[15px] font-bold">
                   {formatQty(alt.qty, alt.unit)}
@@ -135,6 +155,7 @@ function FreeMealChooser({ item, tinted }: { item: DietItem; tinted: boolean }) 
                 onChange={() => setChosen(i)}
                 className="mt-0.5 size-[22px] shrink-0 accent-brand"
               />
+              <FoodIcon name={alt.name} />
               <span className="flex flex-col gap-0.5">
                 <span className="text-base font-bold">{title}</span>
                 {description && (
@@ -152,6 +173,9 @@ function FreeMealChooser({ item, tinted }: { item: DietItem; tinted: boolean }) 
 function CheatBanner({ item }: { item: DietItem }) {
   return (
     <div className="mt-1 rounded-2xl bg-brand-soft px-4 py-5 text-center">
+      <span aria-hidden="true" className="mb-1 block text-3xl">
+        🍕
+      </span>
       <p className="text-lg font-bold text-brand-ink">{item.food_name}</p>
       <p className="mt-1 text-sm font-medium text-brand-ink">Goditi il pasto libero!</p>
     </div>
