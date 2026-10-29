@@ -1,0 +1,68 @@
+export type Alternative = { name: string; qty: number | string; unit: string };
+
+export type DietItem = {
+  meal_name: string;
+  item_id: number;
+  food_name: string;
+  quantity_numeric: number | string;
+  quantity_unit: string;
+  is_cheat_meal: boolean;
+  // Non è ancora nella query di /api/diet: se arriva, la UI mostra le kcal
+  kcal?: number | string | null;
+  alternatives: Alternative[];
+};
+
+export type MealGroup = { name: string; items: DietItem[] };
+
+// Mantiene l'ordine in cui l'API restituisce i pasti
+export function groupByMeal(items: DietItem[]): MealGroup[] {
+  const groups: MealGroup[] = [];
+  for (const item of items) {
+    const last = groups[groups.length - 1];
+    const existing = last && last.name === item.meal_name ? last : groups.find((g) => g.name === item.meal_name);
+    if (existing) existing.items.push(item);
+    else groups.push({ name: item.meal_name, items: [item] });
+  }
+  return groups;
+}
+
+export function mealKcal(items: DietItem[]): number {
+  let total = 0;
+  for (const item of items) {
+    const n = Number(item.kcal);
+    if (Number.isFinite(n) && n > 0) total += n;
+  }
+  return total;
+}
+
+// "Pasto libero a scelta": un record con più alternative da cui scegliere un menu
+export function isFreeMealChooser(item: DietItem): boolean {
+  return item.alternatives.length > 1 && /pasto\s+libero/i.test(item.food_name);
+}
+
+// Orario indicativo di inizio dei pasti, ricavato dal nome
+const START_HOURS: [RegExp, number][] = [
+  [/colazione/i, 7],
+  [/spuntin/i, 10.5],
+  [/pranzo/i, 13],
+  [/merenda/i, 16.5],
+  [/cena/i, 20],
+];
+
+function startHour(name: string): number | null {
+  for (const [pattern, hour] of START_HOURS) {
+    if (pattern.test(name)) return hour;
+  }
+  return null;
+}
+
+// Il primo pasto che deve ancora iniziare (o è iniziato da meno di un'ora)
+export function nextMealName(names: string[], hour: number): string | null {
+  let best: { name: string; hour: number } | null = null;
+  for (const name of names) {
+    const h = startHour(name);
+    if (h === null || h < hour - 1) continue;
+    if (best === null || h < best.hour) best = { name, hour: h };
+  }
+  return best?.name ?? null;
+}

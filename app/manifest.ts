@@ -6,17 +6,14 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: 'DietOS',
     description: 'Il mio gestionale per la dieta',
     start_url: '/',
-    display: 'standalone', /* Questo rimuove la barra di Safari e la fa sembrare un'app vera! */
-    background_color: '#F8FAFC',
-    theme_color: '#14B8A6', /* Il nostro bellissimo Teal */
+    display: 'standalone', /* Rimuove la barra del browser: si apre come un'app vera */
+    lang: 'it',
+    background_color: '#FFFFFF',
+    theme_color: '#FFFFFF',
     icons: [
       {
-        src: '/icon-192x192.png',
-        sizes: '192x192',
-        type: 'image/png',
-      },
-      {
-        src: '/icon-512x512.png',
+        // Generata da app/icon.tsx (512x512)
+        src: '/icon',
         sizes: '512x512',
         type: 'image/png',
       },

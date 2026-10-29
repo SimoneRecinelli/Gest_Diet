@@ -1,264 +1,391 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import BottomNav from '../components/BottomNav';
+import { DAYS, dayIdOf, dayOfMonth, formatLong, weekKeys } from '../lib/dates';
+import { formatNumber, formatQty, spoonsLabel } from '../lib/format';
+import {
+  groupByMeal,
+  isFreeMealChooser,
+  mealKcal,
+  nextMealName,
+  type DietItem,
+} from '../lib/meals';
+import { useClock } from '../lib/use-clock';
 
-// Helper per assegnare l'icona
-const getFoodIcon = (category: string, name: string) => {
-  const lowerName = name.toLowerCase();
-  if (lowerName.includes('banana') || lowerName.includes('banane')) return '🍌';
-  if (lowerName.includes('fragola') || lowerName.includes('fragole')) return '🍓';
-  if (lowerName.includes('mela')) return '🍎';
-  if (lowerName.includes('ananas')) return '🍍';
-  if (lowerName.includes('uva')) return '🍇';
-  if (lowerName.includes('latte')) return '🥛';
-  if (lowerName.includes('yogurt') || lowerName.includes('fruyo')) return '🍧'; 
-  if (lowerName.includes('muesli') || lowerName.includes('cereali') || lowerName.includes('avena')) return '🥣';
-  if (lowerName.includes('pasta') || lowerName.includes('tortellini') || lowerName.includes('gnocchi')) return '🍝';
-  if (lowerName.includes('verdure') || lowerName.includes('carote') || lowerName.includes('zucchine')) return '🥬';
-  if (lowerName.includes('parmigiano') || lowerName.includes('grana') || lowerName.includes('pecorino') || lowerName.includes('mozzarella') || lowerName.includes('sottilette')) return '🧀';
-  if (lowerName.includes('pollo') || lowerName.includes('tacchino')) return '🍗';
-  if (lowerName.includes('vitellone') || lowerName.includes('maiale') || lowerName.includes('bresaola')) return '🥩';
-  if (lowerName.includes('pesce') || lowerName.includes('rana pescatrice') || lowerName.includes('sogliola') || lowerName.includes('palombo') || lowerName.includes('salmone') || lowerName.includes('tonno') || lowerName.includes('polpo') || lowerName.includes('insalata di mare')) return '🐟';
-  if (lowerName.includes('uova')) return '🥚';
-  if (lowerName.includes('olio')) return '🫒';
-  if (lowerName.includes('nutella')) return '🍫';
-  if (lowerName.includes('cornetto')) return '🥐';
-  if (lowerName.includes('pane')) return '🍞';
-  if (lowerName.includes('sugo') || lowerName.includes('salsa') || lowerName.includes('ketchup')) return '🍅';
-  if (lowerName.includes('fagioli') || lowerName.includes('lenticchie')) return '🫘';
+function Chevron({ open }: { open: boolean }) {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className={`transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+    >
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
 
-  if (category === 'Frutta') return '🍎';
-  if (category === 'Carboidrati') return '🌾';
-  if (category === 'Proteine') return '🥩';
-  if (category === 'Verdure') return '🥗';
-  
-  return '🍽️'; 
-};
+function Chip({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="rounded-full bg-brand px-2.5 py-1 text-[13px] font-semibold text-white">
+      {children}
+    </span>
+  );
+}
 
-// NUOVO HELPER: Calcola i cucchiai in automatico
-const getSpoonsInfo = (name: string, qty: number, unit: string) => {
-  if (unit.toLowerCase() !== 'g' && unit.toLowerCase() !== 'ml') return null;
-  
-  const lowerName = name.toLowerCase();
-  if (lowerName.includes('olio') || lowerName.includes('parmigiano') || lowerName.includes('grana')) {
-    const grandi = qty / 10;
-    const piccoli = qty / 5;
-    
-    // Evita i decimali se il numero è intero (es. mostra "1" invece di "1.0")
-    const formatNumber = (num: number) => num % 1 === 0 ? num : num.toFixed(1);
-    
-    return `${formatNumber(grandi)} cucchiai grandi rasi (o ${formatNumber(piccoli)} piccoli)`;
-  }
-  return null;
-};
+function ItemRow({ item, tinted }: { item: DietItem; tinted: boolean }) {
+  const spoons = spoonsLabel(item.food_name, item.quantity_numeric, item.quantity_unit);
+  return (
+    <div
+      className={`flex min-h-14 items-center justify-between gap-3 border-t ${
+        tinted ? 'border-brand/20' : 'border-line'
+      }`}
+    >
+      <div className="flex flex-col gap-0.5 py-2">
+        <span className="text-base font-medium">{item.food_name}</span>
+        {spoons && <span className="text-sm text-muted">{spoons}</span>}
+      </div>
+      <span className="whitespace-nowrap text-base font-bold">
+        {formatQty(item.quantity_numeric, item.quantity_unit)}
+      </span>
+    </div>
+  );
+}
 
-export default function Dashboard() {
-  const [selectedDay, setSelectedDay] = useState(() => {
-  if (typeof window !== 'undefined') {
-    // getDay() restituisce da 0 (Domenica) a 6 (Sabato). 
-    // Lo convertiamo per far corrispondere la tua lista (Lunedì = 1, Domenica = 7)
-    const day = new Date().getDay();
-    return day === 0 ? 7 : day;
-  }
-  return 1; // Fallback temporaneo per il rendering lato server
-});
-  const [diet, setDiet] = useState<Record<string, any[]>>({});
-  const [loading, setLoading] = useState(true);
-  const [expandedItems, setExpandedItems] = useState<Record<number, boolean>>({});
-
-  const days = [
-    { id: 1, name: 'Lunedì', short: 'Lun' },
-    { id: 2, name: 'Martedì', short: 'Mar' },
-    { id: 3, name: 'Mercoledì', short: 'Mer' },
-    { id: 4, name: 'Giovedì', short: 'Gio' },
-    { id: 5, name: 'Venerdì', short: 'Ven' },
-    { id: 6, name: 'Sabato', short: 'Sab' },
-    { id: 7, name: 'Domenica', short: 'Dom' },
-  ];
-
-  useEffect(() => {
-    const fetchDiet = async () => {
-      setLoading(true);
-      try {
-        const res = await fetch(`/api/diet?day=${selectedDay}`);
-        const data = await res.json();
-        
-        const grouped = data.reduce((acc: any, curr: any) => {
-          if (!acc[curr.meal_name]) acc[curr.meal_name] = [];
-          acc[curr.meal_name].push(curr);
-          return acc;
-        }, {});
-        
-        setDiet(grouped);
-        setExpandedItems({});
-      } catch (error) {
-        console.error("Errore nel caricamento della dieta", error);
-      }
-      setLoading(false);
-    };
-
-    fetchDiet();
-  }, [selectedDay]);
-
-  const toggleAlternatives = (itemId: number) => {
-    setExpandedItems(prev => ({ ...prev, [itemId]: !prev[itemId] }));
-  };
+function AlternativesList({ item, tinted }: { item: DietItem; tinted: boolean }) {
+  const [open, setOpen] = useState(false);
+  const count = item.alternatives.length;
+  if (count === 0) return null;
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900 pb-20">
-      <header className="bg-white border-b border-slate-200 px-6 py-5 sticky top-0 z-10 shadow-sm">
-        <div className="max-w-3xl mx-auto flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">DietOS</h1>
-            <p className="text-xs font-semibold text-teal-600 uppercase tracking-wider mt-1">Piano Nutrizionale</p>
-          </div>
-          <div className="flex gap-3">
-            <a href="/spesa" className="h-10 w-10 bg-white border border-slate-200 text-slate-700 rounded-full flex items-center justify-center hover:bg-teal-50 hover:text-teal-600 hover:border-teal-200 shadow-sm transition-colors">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-            </a>
-            <div className="h-10 w-10 bg-teal-500 text-white rounded-full flex items-center justify-center font-bold shadow-md ring-2 ring-white">
-              SR
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-3xl mx-auto px-4 md:px-6 mt-8 space-y-8">
-        <section>
-          <div className="flex items-center justify-between mb-4 px-1">
-            <h2 className="text-lg font-bold text-slate-800">Seleziona Giorno</h2>
-          </div>
-          <div className="flex w-full gap-1.5 sm:gap-2 md:gap-3 pb-2">
-            {days.map((day) => (
-              <button
-                key={day.id}
-                onClick={() => setSelectedDay(day.id)}
-                className={`flex-1 flex flex-col items-center justify-center h-[72px] sm:h-20 rounded-xl sm:rounded-2xl border transition-all shadow-sm ${
-                  selectedDay === day.id
-                    ? 'bg-teal-500 border-teal-500 text-white scale-[1.02] shadow-teal-500/30'
-                    : 'bg-white border-slate-200 text-slate-500 hover:border-teal-300 hover:bg-teal-50 hover:text-teal-700'
+    <div className={`border-t ${tinted ? 'border-brand/20' : 'border-line'}`}>
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+        className={`flex min-h-12 w-full items-center gap-1.5 text-[15px] font-semibold ${
+          tinted ? 'text-brand-ink' : 'text-brand'
+        }`}
+      >
+        Alternative ({count})
+        <Chevron open={open} />
+      </button>
+      {open && (
+        <ul className={`mb-3 rounded-2xl px-3.5 ${tinted ? 'bg-white' : 'bg-surface'}`}>
+          {item.alternatives.map((alt, i) => {
+            const spoons = spoonsLabel(alt.name, alt.qty, alt.unit);
+            return (
+              <li
+                key={i}
+                className={`flex min-h-12 items-center justify-between gap-3 py-2 ${
+                  i > 0 ? 'border-t border-line' : ''
                 }`}
               >
-                <span className="text-[10px] sm:text-xs font-medium mb-0.5 sm:mb-1">{day.short}</span>
-                <span className={`text-lg sm:text-xl font-bold ${selectedDay === day.id ? 'text-white' : 'text-slate-800'}`}>
-                  {day.id}
-                </span>
-              </button>
-            ))}
-          </div>
-        </section>
-
-        <section className="bg-white rounded-3xl border border-slate-200 shadow-md overflow-hidden">
-          <div className="p-5 border-b border-slate-100 bg-white flex justify-between items-center">
-            <h2 className="text-xl font-extrabold text-slate-800">
-              Pasti di {days.find(d => d.id === selectedDay)?.name}
-            </h2>
-          </div>
-          
-          <div className="p-5 md:p-6 space-y-10">
-            {loading ? (
-              <div className="animate-pulse flex flex-col gap-6">
-                <div className="h-20 bg-slate-100 rounded-xl w-full"></div>
-                <div className="h-32 bg-slate-100 rounded-xl w-full"></div>
-              </div>
-            ) : (
-              Object.entries(diet).map(([mealName, items], index) => (
-                <div key={mealName} className="relative pl-6 border-l-[3px] border-slate-100">
-                  <div className="absolute -left-[11px] top-0.5 w-5 h-5 rounded-full bg-white border-4 border-teal-400 shadow-sm"></div>
-                  
-                  <div className="mb-4 flex justify-between items-center">
-                    <h3 className="text-lg font-bold text-slate-900 tracking-tight">{mealName}</h3>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    {items.map((item, idx) => (
-                      <React.Fragment key={item.item_id}>
-                        {item.is_cheat_meal ? (
-                          <div className="bg-gradient-to-r from-teal-50 to-white border border-teal-100 rounded-2xl p-4 text-center shadow-sm">
-                            <span className="text-3xl block mb-2">🍕</span>
-                            <span className="font-extrabold text-teal-700 block text-lg">{item.food_name}</span>
-                            <span className="text-xs font-semibold text-teal-500 uppercase tracking-wider">Goditi il pasto libero!</span>
-                          </div>
-                        ) : (
-                          <div className="bg-slate-50 border border-slate-100 hover:border-teal-100 transition-colors rounded-2xl p-4 shadow-sm flex flex-col gap-3">
-                            
-                            <div className="flex justify-between items-center flex-wrap gap-2">
-                              <div className="flex items-center gap-3">
-                                <span className="text-2xl drop-shadow-sm">{getFoodIcon(item.food_category, item.food_name)}</span>
-                                <span className="text-base font-bold text-slate-800">{item.food_name}</span>
-                              </div>
-                              
-                              {/* Box Quantità con conversione automatica cucchiai se applicabile */}
-                              <div className="flex items-center gap-2">
-                                {getSpoonsInfo(item.food_name, item.quantity_numeric, item.quantity_unit) && (
-                                  <span className="text-[10px] font-bold text-teal-700 bg-teal-50/80 px-2 py-1 rounded-lg border border-teal-100 shadow-sm hidden sm:inline-block">
-                                    {getSpoonsInfo(item.food_name, item.quantity_numeric, item.quantity_unit)}
-                                  </span>
-                                )}
-                                <span className="text-sm font-black text-slate-900 bg-white px-2 py-1 rounded-lg border border-slate-200 shadow-sm">
-                                  {item.quantity_numeric}{item.quantity_unit}
-                                </span>
-                              </div>
-                              
-                              {/* Versione mobile del badge dei cucchiai (va a capo) */}
-                              {getSpoonsInfo(item.food_name, item.quantity_numeric, item.quantity_unit) && (
-                                <div className="w-full sm:hidden text-right">
-                                  <span className="text-[10px] font-bold text-teal-700 bg-teal-50/80 px-2 py-1 rounded-lg border border-teal-100 shadow-sm">
-                                    {getSpoonsInfo(item.food_name, item.quantity_numeric, item.quantity_unit)}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                            
-                            {item.alternatives && item.alternatives.length > 0 && (
-                              <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm mt-1 transition-all">
-                                <button 
-                                  onClick={() => toggleAlternatives(item.item_id)}
-                                  className="w-full flex items-center justify-between p-3 hover:bg-slate-50 transition-colors focus:outline-none"
-                                >
-                                  <span className="text-[10px] uppercase font-bold text-teal-600 flex items-center gap-1.5">
-                                    <svg className="w-3.5 h-3.5 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                                    Alternative ({item.alternatives.length})
-                                  </span>
-                                  <svg 
-                                    className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${expandedItems[item.item_id] ? 'rotate-180' : ''}`} 
-                                    fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                                  >
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
-                                  </svg>
-                                </button>
-                                
-                                {expandedItems[item.item_id] && (
-                                  <div className="p-3 flex flex-col gap-2.5 border-t border-slate-100 bg-slate-50/50">
-                                    {item.alternatives.map((alt: any, altIdx: number) => (
-                                      <div key={altIdx} className="flex justify-between items-center pl-1 flex-wrap gap-1">
-                                        <span className="text-xs font-medium text-slate-600">{alt.name}</span>
-                                        
-                                        <div className="flex items-center gap-2">
-                                          {getSpoonsInfo(alt.name, alt.qty, alt.unit) && (
-                                            <span className="text-[9px] font-semibold text-teal-600 bg-teal-50 px-1.5 py-0.5 rounded border border-teal-100">
-                                              {getSpoonsInfo(alt.name, alt.qty, alt.unit)}
-                                            </span>
-                                          )}
-                                          <span className="text-xs font-bold text-slate-800">{alt.qty}{alt.unit}</span>
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </React.Fragment>
-                    ))}
-                  </div>
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[15px] font-medium">{alt.name}</span>
+                  {spoons && <span className="text-sm text-muted">{spoons}</span>}
                 </div>
-              ))
+                <span className="whitespace-nowrap text-[15px] font-bold">
+                  {formatQty(alt.qty, alt.unit)}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+// "Menu Pizzeria: 1 pizza + ..." → titolo e descrizione
+function splitOption(name: string): { title: string; description: string } {
+  const i = name.indexOf(':');
+  if (i === -1) return { title: name, description: '' };
+  return { title: name.slice(0, i).trim(), description: name.slice(i + 1).trim() };
+}
+
+function FreeMealChooser({ item, tinted }: { item: DietItem; tinted: boolean }) {
+  const [chosen, setChosen] = useState<number | null>(null);
+  return (
+    <fieldset className={`border-t pt-3 pb-3 ${tinted ? 'border-brand/20' : 'border-line'}`}>
+      <legend className="sr-only">{item.food_name}</legend>
+      <p className="pb-3 text-[15px] leading-snug text-muted">{item.food_name}: scegli un menu</p>
+      <div className="flex flex-col gap-2">
+        {item.alternatives.map((alt, i) => {
+          const { title, description } = splitOption(alt.name);
+          const selected = chosen === i;
+          return (
+            <label
+              key={i}
+              className={`flex min-h-19 cursor-pointer items-start gap-3.5 rounded-[18px] border-2 bg-white px-4 py-3.5 ${
+                selected ? 'border-brand' : 'border-line'
+              }`}
+            >
+              <input
+                type="radio"
+                name={`free-meal-${item.item_id}`}
+                checked={selected}
+                onChange={() => setChosen(i)}
+                className="mt-0.5 size-[22px] shrink-0 accent-brand"
+              />
+              <span className="flex flex-col gap-0.5">
+                <span className="text-base font-bold">{title}</span>
+                {description && (
+                  <span className="text-sm leading-snug text-muted">{description}</span>
+                )}
+              </span>
+            </label>
+          );
+        })}
+      </div>
+    </fieldset>
+  );
+}
+
+function CheatBanner({ item }: { item: DietItem }) {
+  return (
+    <div className="mt-1 rounded-2xl bg-brand-soft px-4 py-5 text-center">
+      <p className="text-lg font-bold text-brand-ink">{item.food_name}</p>
+      <p className="mt-1 text-sm font-medium text-brand-ink">Goditi il pasto libero!</p>
+    </div>
+  );
+}
+
+function MealSection({
+  name,
+  items,
+  highlighted,
+}: {
+  name: string;
+  items: DietItem[];
+  highlighted: boolean;
+}) {
+  const kcal = mealKcal(items);
+  const hasFreeMeal = items.some((i) => i.is_cheat_meal || isFreeMealChooser(i));
+
+  return (
+    <section
+      aria-label={name}
+      className={
+        highlighted ? 'mx-3 mt-5 rounded-3xl bg-tint px-5 pt-4 pb-1' : 'px-5 pt-6'
+      }
+    >
+      <div className="flex items-center justify-between gap-3 pb-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="text-xl font-bold">{name}</h2>
+          {highlighted && <Chip>Prossimo</Chip>}
+          {hasFreeMeal && <Chip>Pasto libero</Chip>}
+        </div>
+        {kcal > 0 && (
+          <span
+            className={`whitespace-nowrap text-sm font-semibold ${
+              highlighted ? 'text-brand-ink' : 'text-muted'
+            }`}
+          >
+            ~{formatNumber(kcal)} kcal
+          </span>
+        )}
+      </div>
+
+      {items.map((item) => {
+        if (item.is_cheat_meal) return <CheatBanner key={item.item_id} item={item} />;
+        if (isFreeMealChooser(item)) {
+          return <FreeMealChooser key={item.item_id} item={item} tinted={highlighted} />;
+        }
+        return (
+          <div key={item.item_id}>
+            <ItemRow item={item} tinted={highlighted} />
+            <AlternativesList item={item} tinted={highlighted} />
+          </div>
+        );
+      })}
+    </section>
+  );
+}
+
+function Skeleton() {
+  return (
+    <div className="animate-pulse space-y-8 px-5 pt-8" aria-hidden="true">
+      {[3, 2, 3].map((rows, i) => (
+        <div key={i} className="space-y-3">
+          <div className="h-6 w-32 rounded-lg bg-surface" />
+          {Array.from({ length: rows }).map((_, r) => (
+            <div key={r} className="h-12 rounded-xl bg-surface" />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+type Result = { day: number; attempt: number; items: DietItem[] | null };
+
+export default function Dashboard() {
+  const clock = useClock();
+  const [picked, setPicked] = useState<number | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  const [result, setResult] = useState<Result>({ day: 0, attempt: 0, items: null });
+
+  const ready = clock !== null;
+  const todayKey = clock?.dateKey ?? null;
+  const todayId = todayKey ? dayIdOf(todayKey) : 1;
+  const selectedDay = picked ?? todayId;
+  const keys = useMemo(() => (todayKey ? weekKeys(todayKey) : null), [todayKey]);
+
+  useEffect(() => {
+    // Aspetta l'orologio del dispositivo, così non scarica il giorno sbagliato
+    if (!ready) return;
+    let cancelled = false;
+    fetch(`/api/diet?day=${selectedDay}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled) return;
+        setResult({
+          day: selectedDay,
+          attempt,
+          items: Array.isArray(data)
+            ? (data as DietItem[]).map((i) => ({ ...i, alternatives: i.alternatives ?? [] }))
+            : null,
+        });
+      })
+      .catch(() => {
+        if (!cancelled) setResult({ day: selectedDay, attempt, items: null });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [ready, selectedDay, attempt]);
+
+  const loading = !ready || result.day !== selectedDay || result.attempt !== attempt;
+  const failed = !loading && result.items === null;
+  const groups = useMemo(() => (result.items ? groupByMeal(result.items) : []), [result.items]);
+
+  const isToday = selectedDay === todayId;
+  const nextName =
+    clock && isToday && !loading
+      ? nextMealName(
+          groups.map((g) => g.name),
+          clock.hour,
+        )
+      : null;
+
+  const totalKcal = groups.reduce((sum, g) => sum + mealKcal(g.items), 0);
+  const dayName = DAYS.find((d) => d.id === selectedDay)?.name ?? '';
+  const selectedKey = keys ? keys[selectedDay - 1] : null;
+
+  return (
+    <div className="min-h-dvh bg-white pb-[calc(6rem+env(safe-area-inset-bottom))]">
+      <div className="mx-auto w-full max-w-xl">
+        <header className="flex items-center justify-between px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-1">
+          <div>
+            <p className="min-h-5 text-sm font-medium text-muted">
+              {selectedKey ? formatLong(selectedKey) : ''}
+            </p>
+            <h1 className="mt-0.5 text-[32px] leading-tight font-extrabold tracking-tight">
+              {isToday && ready ? 'Oggi' : dayName}
+            </h1>
+          </div>
+          <div
+            aria-hidden="true"
+            className="flex size-11 items-center justify-center rounded-full bg-brand-soft text-[15px] font-bold text-brand-ink"
+          >
+            SR
+          </div>
+        </header>
+
+        <nav aria-label="Giorni della settimana" className="flex gap-1 px-4 pt-3.5 pb-1">
+          {DAYS.map((d, i) => {
+            const key = keys?.[i];
+            const selected = d.id === selectedDay;
+            const today = ready && d.id === todayId;
+            return (
+              <button
+                key={d.id}
+                type="button"
+                aria-pressed={selected}
+                aria-label={`${d.name}${key ? ` ${dayOfMonth(key)}` : ''}${today ? ', oggi' : ''}`}
+                onClick={() => setPicked(d.id)}
+                className={`flex h-[68px] flex-1 flex-col items-center justify-center gap-1 rounded-[18px] ${
+                  selected ? 'bg-brand text-white' : 'text-muted'
+                }`}
+              >
+                <span className="text-[13px] font-medium">{d.short}</span>
+                <span
+                  className={`min-h-6 text-lg font-bold ${selected ? 'text-white' : 'text-ink'}`}
+                >
+                  {key ? dayOfMonth(key) : ''}
+                </span>
+                <span
+                  className={`-mt-2 size-[5px] rounded-full ${
+                    today ? (selected ? 'bg-white' : 'bg-brand') : 'bg-transparent'
+                  }`}
+                />
+              </button>
+            );
+          })}
+        </nav>
+
+        {!loading && groups.length > 0 && (
+          <div className="mx-5 mt-3 flex items-center justify-between rounded-[20px] bg-surface px-[18px] py-4">
+            <div>
+              <p className="text-sm font-medium text-muted">
+                {totalKcal > 0 ? 'Totale del giorno' : 'Giornata'}
+              </p>
+              <p className="mt-0.5 text-[26px] font-extrabold tracking-tight">
+                {totalKcal > 0
+                  ? `${formatNumber(totalKcal)} kcal`
+                  : `${groups.length} ${groups.length === 1 ? 'pasto' : 'pasti'}`}
+              </p>
+            </div>
+            {totalKcal > 0 && (
+              <span className="rounded-full bg-brand-soft px-3 py-1.5 text-sm font-semibold text-brand-ink">
+                {groups.length} {groups.length === 1 ? 'pasto' : 'pasti'}
+              </span>
             )}
           </div>
-        </section>
-      </main>
+        )}
+
+        {loading && <Skeleton />}
+
+        {failed && (
+          <div
+            role="alert"
+            className="mx-5 mt-6 rounded-2xl bg-red-50 px-4 py-4 text-[15px] text-red-900"
+          >
+            <p>Non riesco a caricare il piano di {dayName.toLowerCase()}.</p>
+            <button
+              type="button"
+              onClick={() => setAttempt((a) => a + 1)}
+              className="mt-2 min-h-11 font-semibold underline"
+            >
+              Riprova
+            </button>
+          </div>
+        )}
+
+        {!loading && !failed && groups.length === 0 && (
+          <p className="px-5 pt-8 text-base text-muted">Nessun pasto previsto per questo giorno.</p>
+        )}
+
+        {!loading &&
+          groups.map((group) => (
+            <MealSection
+              key={group.name}
+              name={group.name}
+              items={group.items}
+              highlighted={group.name === nextName}
+            />
+          ))}
+      </div>
+
+      <BottomNav active="oggi" />
     </div>
   );
 }
