@@ -15,5 +15,5 @@ export function middleware(request: NextRequest) {
 
 // Diciamo al middleware di proteggere tutto TRANNE le icone e i file di sistema (serve per la PWA)
 export const config = {
-  matcher: ['/((?!api/auth|_next/static|_next/image|favicon.ico|manifest.json|manifest.webmanifest|icon|apple-icon).*)'],
+  matcher: ['/((?!api/auth|api/cron|sw.js|splash|_next/static|_next/image|favicon.ico|manifest.json|manifest.webmanifest|icon|apple-icon).*)'],
 };

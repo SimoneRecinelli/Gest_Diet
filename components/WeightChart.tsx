@@ -102,8 +102,7 @@ export default function WeightChart({ settings, points, projectionEnd, todayKey 
         textAnchor="start"
         fontSize={12}
         fontWeight={600}
-        className="fill-brand-ink"
-        stroke="white"
+        className="fill-brand-ink stroke-page"
         strokeWidth={4}
         paintOrder="stroke"
         strokeLinejoin="round"
@@ -175,7 +174,7 @@ export default function WeightChart({ settings, points, projectionEnd, todayKey 
             cx={x(p.date)}
             cy={y(p.kg)}
             r={isLast ? 5.5 : 4}
-            className={isLast ? 'fill-ink stroke-white' : 'fill-white stroke-ink'}
+            className={isLast ? 'fill-ink stroke-page' : 'fill-page stroke-ink'}
             strokeWidth={2}
           />
         );
@@ -186,8 +185,7 @@ export default function WeightChart({ settings, points, projectionEnd, todayKey 
         textAnchor="middle"
         fontSize={13}
         fontWeight={700}
-        className="fill-ink"
-        stroke="white"
+        className="fill-ink stroke-page"
         strokeWidth={4}
         paintOrder="stroke"
         strokeLinejoin="round"

@@ -34,7 +34,7 @@ export default function Login() {
   };
 
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center bg-white px-6 pb-[env(safe-area-inset-bottom)]">
+    <main className="flex min-h-dvh flex-col items-center justify-center bg-page px-6 pb-[env(safe-area-inset-bottom)]">
       <div className="w-full max-w-sm text-center">
         <div className="mx-auto mb-6 flex size-16 items-center justify-center rounded-2xl bg-brand text-2xl font-extrabold text-white">
           SR
@@ -59,12 +59,12 @@ export default function Login() {
             aria-invalid={error ? true : undefined}
             aria-describedby={error ? 'login-error' : undefined}
             className={`h-14 w-full rounded-2xl border-2 bg-surface px-4 text-center text-base font-semibold focus:outline-none ${
-              error ? 'border-red-600 bg-red-50' : 'border-line focus:border-brand'
+              error ? 'border-red-600 bg-red-50 dark:bg-red-950' : 'border-line focus:border-brand'
             }`}
           />
 
           {error && (
-            <p id="login-error" role="alert" className="text-sm font-medium text-red-700">
+            <p id="login-error" role="alert" className="text-sm font-medium text-red-700 dark:text-red-400">
               {error}
             </p>
           )}

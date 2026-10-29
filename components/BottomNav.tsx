@@ -52,7 +52,7 @@ export default function BottomNav({ active }: { active: Tab }) {
   return (
     <nav
       aria-label="Navigazione principale"
-      className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-white pb-[env(safe-area-inset-bottom)]"
+      className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-page pb-[env(safe-area-inset-bottom)]"
     >
       <div className="mx-auto flex max-w-xl px-2 pt-2 pb-1.5">
         {TABS.map((tab) => {

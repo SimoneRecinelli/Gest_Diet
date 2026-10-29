@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import BottomNav from '../components/BottomNav';
 import { DAYS, dayIdOf, dayOfMonth, formatLong, weekKeys } from '../lib/dates';
@@ -11,8 +11,10 @@ import {
   isFreeMealChooser,
   mealKcal,
   nextMealName,
+  oilSummary,
   type DietItem,
 } from '../lib/meals';
+import { haptic } from '../lib/haptic';
 import { useClock } from '../lib/use-clock';
 import type { WeightData } from '../lib/weight';
 
@@ -51,7 +53,7 @@ function FoodIcon({
       aria-hidden="true"
       className={`flex shrink-0 items-center justify-center ${
         small ? 'size-8 rounded-lg text-lg' : 'size-10 rounded-xl text-[22px]'
-      } ${tinted ? 'bg-white' : 'bg-surface'}`}
+      } ${tinted ? 'bg-page' : 'bg-surface'}`}
     >
       {getFoodIcon(name, category)}
     </span>
@@ -107,7 +109,7 @@ function AlternativesList({ item, tinted }: { item: DietItem; tinted: boolean })
         <Chevron open={open} />
       </button>
       {open && (
-        <ul className={`mb-3 rounded-2xl px-3.5 ${tinted ? 'bg-white' : 'bg-surface'}`}>
+        <ul className={`mb-3 rounded-2xl px-3.5 ${tinted ? 'bg-page' : 'bg-surface'}`}>
           {item.alternatives.map((alt, i) => {
             const spoons = spoonsLabel(alt.name, alt.qty, alt.unit);
             return (
@@ -156,7 +158,7 @@ function FreeMealChooser({ item, tinted }: { item: DietItem; tinted: boolean }) 
           return (
             <label
               key={i}
-              className={`flex min-h-19 cursor-pointer items-start gap-3.5 rounded-[18px] border-2 bg-white px-4 py-3.5 ${
+              className={`flex min-h-19 cursor-pointer items-start gap-3.5 rounded-[18px] border-2 bg-page px-4 py-3.5 ${
                 selected ? 'border-brand' : 'border-line'
               }`}
             >
@@ -261,6 +263,43 @@ function Skeleton() {
   );
 }
 
+function OilRecap({ oil }: { oil: ReturnType<typeof oilSummary> }) {
+  const spoons = (grams: number) => {
+    const n = grams / 10;
+    const label = n === 1 ? 'cucchiaio grande raso' : 'cucchiai grandi rasi';
+    return `${new Intl.NumberFormat('it-IT', { maximumFractionDigits: 1 }).format(n)} ${label}`;
+  };
+
+  return (
+    <div className="mx-5 mt-2 flex items-start gap-3 rounded-[20px] bg-surface px-[18px] py-4">
+      <span
+        aria-hidden="true"
+        className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-page text-[22px]"
+      >
+        🫒
+      </span>
+      <div className="min-w-0">
+        <p className="text-sm font-medium text-muted">Olio di oggi</p>
+        {oil.grams > 0 ? (
+          <>
+            <p className="mt-0.5 text-xl font-extrabold tracking-tight">
+              {spoons(oil.grams)}
+              <span className="ml-2 text-sm font-semibold text-muted">
+                {formatNumber(oil.grams)} g
+              </span>
+            </p>
+            <p className="mt-1 text-[15px] text-muted">
+              {oil.perMeal.map((m) => `${m.name}: ${formatNumber(m.grams / 10)}`).join(' · ')}
+            </p>
+          </>
+        ) : (
+          <p className="mt-0.5 text-xl font-extrabold tracking-tight">Niente olio oggi</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 type Result = { day: number; attempt: number; items: DietItem[] | null };
 
 export default function Dashboard() {
@@ -335,11 +374,40 @@ export default function Dashboard() {
       : null;
 
   const totalKcal = groups.reduce((sum, g) => sum + mealKcal(g.items), 0);
+  const oil = useMemo(() => oilSummary(groups), [groups]);
+
+  const goToDay = useCallback((day: number) => {
+    if (day < 1 || day > 7) return;
+    haptic();
+    setPicked(day);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
+  // Scorrimento orizzontale per cambiare giorno (ignora i gesti verticali e quelli dal bordo sinistro)
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
+  const onTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    touchStart.current = t.clientX < 24 ? null : { x: t.clientX, y: t.clientY };
+  };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    const start = touchStart.current;
+    touchStart.current = null;
+    if (!start) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - start.x;
+    const dy = t.clientY - start.y;
+    if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.6) return;
+    goToDay(selectedDay + (dx < 0 ? 1 : -1));
+  };
   const dayName = DAYS.find((d) => d.id === selectedDay)?.name ?? '';
   const selectedKey = keys ? keys[selectedDay - 1] : null;
 
   return (
-    <div className="min-h-dvh bg-white pb-[calc(6rem+env(safe-area-inset-bottom))]">
+    <div
+      className="min-h-dvh bg-page pb-[calc(6rem+env(safe-area-inset-bottom))]"
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+    >
       <div className="mx-auto w-full max-w-xl">
         <header className="flex items-center justify-between px-5 pt-[calc(env(safe-area-inset-top)+2rem)] pb-1">
           <div>
@@ -358,7 +426,10 @@ export default function Dashboard() {
           </div>
         </header>
 
-        <nav aria-label="Giorni della settimana" className="flex gap-1 px-4 pt-3.5 pb-1">
+        <nav
+          aria-label="Giorni della settimana"
+          className="sticky top-0 z-10 flex gap-1 border-b border-transparent bg-page px-4 pt-3.5 pb-1"
+        >
           {DAYS.map((d, i) => {
             const key = keys?.[i];
             const selected = d.id === selectedDay;
@@ -369,7 +440,7 @@ export default function Dashboard() {
                 type="button"
                 aria-pressed={selected}
                 aria-label={`${d.name}${key ? ` ${dayOfMonth(key)}` : ''}${today ? ', oggi' : ''}`}
-                onClick={() => setPicked(d.id)}
+                onClick={() => goToDay(d.id)}
                 className={`flex h-[68px] flex-1 flex-col items-center justify-center gap-1 rounded-[18px] ${
                   selected ? 'bg-brand text-white' : 'text-muted'
                 }`}
@@ -437,12 +508,14 @@ export default function Dashboard() {
           </div>
         )}
 
+        {!loading && groups.length > 0 && <OilRecap oil={oil} />}
+
         {loading && <Skeleton />}
 
         {failed && (
           <div
             role="alert"
-            className="mx-5 mt-6 rounded-2xl bg-red-50 px-4 py-4 text-[15px] text-red-900"
+            className="mx-5 mt-6 rounded-2xl bg-red-50 px-4 py-4 text-[15px] text-red-900 dark:bg-red-950 dark:text-red-100"
           >
             <p>Non riesco a caricare il piano di {dayName.toLowerCase()}.</p>
             <button

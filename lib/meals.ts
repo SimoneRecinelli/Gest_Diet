@@ -72,3 +72,21 @@ export function nextMealName(names: string[], hour: number): string | null {
   }
   return best?.name ?? null;
 }
+
+// Olio del giorno: grammi totali e ripartizione per pasto (10 g = 1 cucchiaio grande raso)
+export type OilSummary = { grams: number; perMeal: { name: string; grams: number }[] };
+
+export function oilSummary(groups: MealGroup[]): OilSummary {
+  const perMeal: { name: string; grams: number }[] = [];
+  for (const group of groups) {
+    let grams = 0;
+    for (const item of group.items) {
+      const unit = item.quantity_unit.toLowerCase();
+      if (!/\bolio\b/i.test(item.food_name) || (unit !== 'g' && unit !== 'ml')) continue;
+      const n = Number(item.quantity_numeric);
+      if (Number.isFinite(n) && n > 0) grams += n;
+    }
+    if (grams > 0) perMeal.push({ name: group.name, grams });
+  }
+  return { grams: perMeal.reduce((sum, m) => sum + m.grams, 0), perMeal };
+}

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import BottomNav from '../../components/BottomNav';
+import { haptic } from '../../lib/haptic';
 import { useStoredValue } from '../../lib/use-stored-value';
 
 type GroceryItem = { id: number; name: string; qty: string };
@@ -137,6 +138,7 @@ export default function ListaSpesa() {
   const progress = allItems.length === 0 ? 0 : Math.round((doneItems.length / allItems.length) * 100);
 
   function toggle(id: number) {
+    haptic();
     const next = new Set(checked);
     if (next.has(id)) next.delete(id);
     else next.add(id);
@@ -151,9 +153,9 @@ export default function ListaSpesa() {
   }
 
   return (
-    <div className="min-h-dvh bg-white pb-[calc(6rem+env(safe-area-inset-bottom))]">
+    <div className="min-h-dvh bg-page pb-[calc(6rem+env(safe-area-inset-bottom))]">
       <div className="mx-auto w-full max-w-xl">
-        <header className="sticky top-0 z-10 border-b border-line bg-white px-5 pt-[calc(env(safe-area-inset-top)+2rem)] pb-4">
+        <header className="sticky top-0 z-10 border-b border-line bg-page px-5 pt-[calc(env(safe-area-inset-top)+2rem)] pb-4">
           <div className="flex items-baseline justify-between">
             <h1 className="text-[32px] leading-tight font-extrabold tracking-tight">Spesa</h1>
             <p className="text-[15px] font-semibold text-brand-ink">

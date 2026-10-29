@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import BottomNav from '../../components/BottomNav';
+import PushToggle from '../../components/PushToggle';
 import WeightChart from '../../components/WeightChart';
 import {
   addDays,
@@ -21,6 +22,7 @@ import {
   type WeightData,
   type WeightSettings,
 } from '../../lib/weight';
+import { haptic } from '../../lib/haptic';
 import { useClock } from '../../lib/use-clock';
 
 function parseKg(text: string): number | null {
@@ -65,7 +67,7 @@ function Tile({
       <p className="text-sm font-medium text-muted">{label}</p>
       <p
         className={`mt-1 text-xl leading-tight font-extrabold tracking-tight ${
-          tone === 'good' ? 'text-brand-ink' : tone === 'warn' ? 'text-amber-800' : ''
+          tone === 'good' ? 'text-brand-ink' : tone === 'warn' ? 'text-amber-800 dark:text-amber-300' : ''
         }`}
       >
         {value}
@@ -165,6 +167,7 @@ export default function Peso() {
       setMessage({ ok: false, text: 'Inserisci un peso valido, ad esempio 88,4' });
       return;
     }
+    haptic();
     setSaving(true);
     setMessage(null);
     const error = await callApi('POST', '/api/weight', { measured_on: effectiveDate, kg });
@@ -212,7 +215,7 @@ export default function Peso() {
   const pace = summary ? paceLabel(summary.requiredPerWeek) : null;
 
   return (
-    <div className="min-h-dvh bg-white pb-[calc(6rem+env(safe-area-inset-bottom))]">
+    <div className="min-h-dvh bg-page pb-[calc(6rem+env(safe-area-inset-bottom))]">
       <div className="mx-auto w-full max-w-xl">
         <header className="px-5 pt-[calc(env(safe-area-inset-top)+2rem)] pb-1">
           <p className="min-h-6 text-base font-semibold text-ink/75">
@@ -224,7 +227,7 @@ export default function Peso() {
         {(loading || !todayKey) && <Skeleton />}
 
         {!loading && todayKey && !data && (
-          <div role="alert" className="mx-5 mt-6 rounded-2xl bg-red-50 px-4 py-4 text-[15px] text-red-900">
+          <div role="alert" className="mx-5 mt-6 rounded-2xl bg-red-50 px-4 py-4 text-[15px] text-red-900 dark:bg-red-950 dark:text-red-100">
             <p>Non riesco a caricare i dati del peso.</p>
             <button
               type="button"
@@ -253,7 +256,7 @@ export default function Peso() {
                   </span>
                 )}
                 {summary.deltaFromPrevious !== null && summary.points.length > 2 && (
-                  <span className="rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-muted">
+                  <span className="rounded-full bg-page px-3 py-1.5 text-sm font-semibold text-muted">
                     {formatKgSigned(summary.deltaFromPrevious)} kg sull’ultima
                   </span>
                 )}
@@ -330,7 +333,7 @@ export default function Peso() {
                 {message && (
                   <p
                     role={message.ok ? 'status' : 'alert'}
-                    className={`text-[15px] font-medium ${message.ok ? 'text-brand-ink' : 'text-red-700'}`}
+                    className={`text-[15px] font-medium ${message.ok ? 'text-brand-ink' : 'text-red-700 dark:text-red-400'}`}
                   >
                     {message.text}
                   </p>
@@ -420,7 +423,7 @@ export default function Peso() {
                       value={simTarget ?? formatKg(settings.target_kg)}
                       onChange={(e) => setSimTarget(e.target.value)}
                       aria-invalid={simTarget !== null && simTargetKg === null ? true : undefined}
-                      className={`h-12 w-24 rounded-xl border-2 bg-white px-3 text-center text-lg font-bold focus:outline-none ${
+                      className={`h-12 w-24 rounded-xl border-2 bg-page px-3 text-center text-lg font-bold focus:outline-none ${
                         simTarget !== null && simTargetKg === null
                           ? 'border-red-600'
                           : 'border-line focus:border-brand'
@@ -466,7 +469,7 @@ export default function Peso() {
                   {pace && (
                     <p
                       className={`mt-1 text-[15px] font-medium ${
-                        pace.tone === 'warn' ? 'text-amber-800' : 'text-brand-ink'
+                        pace.tone === 'warn' ? 'text-amber-800 dark:text-amber-300' : 'text-brand-ink'
                       }`}
                     >
                       {pace.text}
@@ -559,6 +562,8 @@ export default function Peso() {
                 })}
               </ul>
             </section>
+
+            <PushToggle />
           </>
         )}
       </div>

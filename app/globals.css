@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  color-scheme: light;
+  color-scheme: light dark;
 }
 
 @theme {
@@ -13,14 +13,30 @@
   --color-brand: #0f766e;
   --color-brand-ink: #0b5a54;
   --color-brand-soft: #e3f3f0;
+  --color-page: #ffffff;
 }
 
 @theme inline {
   --font-sans: var(--font-inter), system-ui, sans-serif;
 }
 
+/* Tema scuro: segue l'impostazione del telefono */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-ink: #e8f1ef;
+    --color-muted: #9db0ac;
+    --color-line: #26343a;
+    --color-surface: #18222a;
+    --color-tint: #12302d;
+    --color-brand: #1f8f84;
+    --color-brand-ink: #5eead4;
+    --color-brand-soft: #16413c;
+    --color-page: #0e1417;
+  }
+}
+
 body {
-  background: #ffffff;
+  background: var(--color-page);
   color: var(--color-ink);
   -webkit-tap-highlight-color: transparent;
 }
