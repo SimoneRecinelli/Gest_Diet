@@ -11,8 +11,6 @@ export const viewport: Viewport = {
   themeColor: "#FFFFFF",
   width: "device-width",
   initialScale: 1,
-  // Serve per usare env(safe-area-inset-*) quando l'app è aperta dalla home del telefono
-  viewportFit: "cover",
 };
 
 export const metadata: Metadata = {
