@@ -2,100 +2,98 @@
 
 import { useMemo, useState } from 'react';
 import BottomNav from '../../components/BottomNav';
+import { addDays, daysBetween, formatDayMonth, weekKeys } from '../../lib/dates';
 import { haptic } from '../../lib/haptic';
+import { PLAN_START, PLAN_WEEKS, STAPLES, purchasePlan } from '../../lib/shopping';
+import { useClock } from '../../lib/use-clock';
 import { useStoredValue } from '../../lib/use-stored-value';
 
-type GroceryItem = { id: number; name: string; qty: string };
-type Category = { id: string; title: string; items: GroceryItem[] };
-type Owner = { id: string; label: string; categories: Category[] };
+const STORAGE_KEY = 'dietos-spesa-v2';
+const SHOWN_WEEKS = 4;
 
-// Gli id sono unici su tutte le liste: servono per salvare le spunte
-const OWNERS: Owner[] = [
-  {
-    id: 'simone',
-    label: 'Simone',
-    categories: [
-      {
-        id: 'colazione_spuntini',
-        title: 'Da comprare',
-        items: [
-          { id: 1, name: "Latte Parzialmente Scremato Zymil (senza lattosio)", qty: "4 Litri" },
-          { id: 2, name: "Yogurt Banana Zymil", qty: "7 Vasi" },
-          { id: 3, name: "Yogurt Fruyo (Vaniglia/Stracciatella)", qty: "2 Vasi" },
-          { id: 4, name: "Cereali Nesquik o Muesli", qty: "2 Conf." },
-        ],
-      },
-    ],
-  },
-];
+const PLANS = STAPLES.map((s) => ({ staple: s, plan: purchasePlan(s, PLAN_WEEKS) }));
 
-const STORAGE_KEY = 'dietos-spesa-v1';
-
-function parseIds(raw: string): Set<number> {
+function parseChecked(raw: string): Set<string> {
   try {
     const data: unknown = JSON.parse(raw);
-    if (Array.isArray(data)) return new Set(data.filter((n): n is number => typeof n === 'number'));
+    if (Array.isArray(data)) return new Set(data.filter((n): n is string => typeof n === 'string'));
   } catch {
     // valore vuoto o rovinato: si riparte da zero
   }
   return new Set();
 }
 
+function weekTitle(offset: number): string {
+  if (offset === 0) return 'Questa settimana';
+  if (offset === 1) return 'Prossima';
+  return `Fra ${offset} settimane`;
+}
+
 function ItemRow({
-  item,
+  name,
+  detail,
+  qty,
   checked,
   onToggle,
 }: {
-  item: GroceryItem;
+  name: string;
+  detail: string;
+  qty: string;
   checked: boolean;
-  onToggle: (id: number) => void;
+  onToggle: () => void;
 }) {
   return (
-    <label className="flex min-h-14 cursor-pointer items-center gap-3.5 border-t border-line py-2">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={() => onToggle(item.id)}
-        className="size-6 shrink-0 accent-brand"
-      />
-      <span
-        className={`flex-1 text-base font-medium ${checked ? 'text-muted line-through' : ''}`}
-      >
-        {item.name}
+    <label className="flex min-h-16 cursor-pointer items-center gap-3.5 border-t border-line py-2.5">
+      <input type="checkbox" checked={checked} onChange={onToggle} className="size-6 shrink-0 accent-brand" />
+      <span className="min-w-0 flex-1">
+        <span className={`block text-base font-medium ${checked ? 'text-muted line-through' : ''}`}>{name}</span>
+        <span className="block text-sm text-muted">{detail}</span>
       </span>
-      <span
-        className={`text-right text-sm whitespace-nowrap ${
-          checked ? 'font-semibold text-muted' : 'font-bold'
-        }`}
-      >
-        {item.qty}
+      <span className={`text-right text-sm whitespace-nowrap ${checked ? 'font-semibold text-muted' : 'font-bold'}`}>
+        {qty}
       </span>
     </label>
   );
 }
 
 export default function ListaSpesa() {
+  const clock = useClock();
   const [raw, setRaw] = useStoredValue(STORAGE_KEY);
-  const [ownerIndex, setOwnerIndex] = useState(0);
-  const checked = useMemo(() => parseIds(raw), [raw]);
+  const [picked, setPicked] = useState(0);
+  const checked = useMemo(() => parseChecked(raw), [raw]);
 
-  const owner = OWNERS[ownerIndex];
-  const allItems = owner.categories.flatMap((c) => c.items);
-  const doneItems = allItems.filter((i) => checked.has(i.id));
-  const progress = allItems.length === 0 ? 0 : Math.round((doneItems.length / allItems.length) * 100);
+  const todayKey = clock?.dateKey ?? null;
+  // Indice della settimana corrente nel piano (0 = settimana del 26 ottobre 2026)
+  const currentIndex = todayKey
+    ? Math.min(PLAN_WEEKS - SHOWN_WEEKS, Math.max(0, Math.floor(daysBetween(PLAN_START, weekKeys(todayKey)[0]) / 7)))
+    : 0;
+  const weekIndex = currentIndex + picked;
+  const weekStart = addDays(PLAN_START, weekIndex * 7);
+  const weekEnd = addDays(weekStart, 6);
+
+  const due = PLANS.map(({ staple, plan }) => ({ staple, buy: plan[weekIndex] })).filter((r) => r.buy > 0);
+  const notDue = PLANS.filter(({ plan }) => plan[weekIndex] === 0).map(({ staple, plan }) => {
+    const next = plan.findIndex((n, i) => i > weekIndex && n > 0);
+    return { staple, inWeeks: next === -1 ? null : next - weekIndex };
+  });
+
+  const keyOf = (id: number) => `${weekStart}:${id}`;
+  const todo = due.filter((r) => !checked.has(keyOf(r.staple.id)));
+  const done = due.filter((r) => checked.has(keyOf(r.staple.id)));
+  const progress = due.length > 0 ? Math.round((done.length / due.length) * 100) : 0;
 
   function toggle(id: number) {
     haptic();
     const next = new Set(checked);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
+    const key = keyOf(id);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
     setRaw(JSON.stringify([...next]));
   }
 
-  // Svuota solo la lista che stai guardando
-  function resetOwner() {
+  function resetWeek() {
     const next = new Set(checked);
-    for (const item of allItems) next.delete(item.id);
+    for (const r of due) next.delete(keyOf(r.staple.id));
     setRaw(JSON.stringify([...next]));
   }
 
@@ -106,15 +104,15 @@ export default function ListaSpesa() {
           <div className="flex items-baseline justify-between">
             <h1 className="text-[32px] leading-tight font-extrabold tracking-tight">Spesa</h1>
             <p className="text-[15px] font-semibold text-brand-ink">
-              {doneItems.length} di {allItems.length} presi
+              {done.length} di {due.length} presi
             </p>
           </div>
           <div
             role="progressbar"
             aria-label="Articoli presi"
             aria-valuemin={0}
-            aria-valuemax={allItems.length}
-            aria-valuenow={doneItems.length}
+            aria-valuemax={due.length}
+            aria-valuenow={done.length}
             className="mt-3 h-2 overflow-hidden rounded-full bg-line"
           >
             <div
@@ -122,59 +120,88 @@ export default function ListaSpesa() {
               style={{ width: `${progress}%` }}
             />
           </div>
-          {OWNERS.length > 1 && (
-          <div className="mt-4 flex gap-1 rounded-2xl bg-surface p-1">
-            {OWNERS.map((o, i) => (
+          <div className="mt-4 flex gap-1 rounded-2xl bg-surface p-1" role="group" aria-label="Settimana">
+            {Array.from({ length: SHOWN_WEEKS }).map((_, i) => (
               <button
-                key={o.id}
+                key={i}
                 type="button"
-                aria-pressed={i === ownerIndex}
-                onClick={() => setOwnerIndex(i)}
+                aria-pressed={i === picked}
+                onClick={() => setPicked(i)}
                 className={`min-h-11 flex-1 rounded-xl text-[15px] ${
-                  i === ownerIndex ? 'bg-brand font-bold text-white' : 'font-semibold text-muted'
+                  i === picked ? 'bg-brand font-bold text-white' : 'font-semibold text-muted'
                 }`}
               >
-                {o.label}
+                {i === 0 ? 'Questa' : i === 1 ? 'Prossima' : `+${i}`}
               </button>
             ))}
           </div>
-          )}
         </header>
 
         <main className="px-5">
-          {owner.categories.map((category) => {
-            const remaining = category.items.filter((i) => !checked.has(i.id));
-            if (remaining.length === 0) return null;
-            return (
-              <section key={category.id} aria-label={category.title} className="pt-6">
-                <h2 className="pb-1 text-lg font-bold">{category.title}</h2>
-                {remaining.map((item) => (
-                  <ItemRow key={item.id} item={item} checked={false} onToggle={toggle} />
-                ))}
-              </section>
-            );
-          })}
+          <p className="pt-5 text-[15px] font-medium text-muted">
+            {weekTitle(picked)}
+            {todayKey && ` · ${formatDayMonth(weekStart)} – ${formatDayMonth(weekEnd)}`}
+          </p>
 
-          {doneItems.length > 0 && (
+          {todo.length > 0 && (
+            <section aria-label="Da comprare" className="pt-2">
+              <h2 className="pb-1 text-lg font-bold">Da comprare</h2>
+              {todo.map(({ staple, buy }) => (
+                <ItemRow
+                  key={staple.id}
+                  name={staple.name}
+                  detail={staple.detail}
+                  qty={staple.qty(buy)}
+                  checked={false}
+                  onToggle={() => toggle(staple.id)}
+                />
+              ))}
+            </section>
+          )}
+
+          {due.length === 0 && (
+            <p className="pt-6 text-base text-muted">Questa settimana non c’è niente da comprare.</p>
+          )}
+
+          {done.length > 0 && (
             <section aria-label="Articoli presi" className="pt-6">
-              <h2 className="pb-1 text-lg font-bold text-muted">Presi ({doneItems.length})</h2>
-              {doneItems.map((item) => (
-                <ItemRow key={item.id} item={item} checked onToggle={toggle} />
+              <h2 className="pb-1 text-lg font-bold text-muted">Presi ({done.length})</h2>
+              {done.map(({ staple, buy }) => (
+                <ItemRow
+                  key={staple.id}
+                  name={staple.name}
+                  detail={staple.detail}
+                  qty={staple.qty(buy)}
+                  checked
+                  onToggle={() => toggle(staple.id)}
+                />
               ))}
               <button
                 type="button"
-                onClick={resetOwner}
+                onClick={resetWeek}
                 className="mt-2 min-h-12 w-full border-t border-line text-[15px] font-semibold text-brand"
               >
-                Azzera la lista
+                Azzera la lista della settimana
               </button>
             </section>
           )}
 
-          {doneItems.length === allItems.length && allItems.length > 0 && (
-            <p className="pt-6 text-center text-base font-medium text-brand-ink">
-              Hai preso tutto.
-            </p>
+          {due.length > 0 && todo.length === 0 && (
+            <p className="pt-6 text-center text-base font-medium text-brand-ink">Hai preso tutto.</p>
+          )}
+
+          {notDue.length > 0 && (
+            <section aria-label="Non serve questa settimana" className="pt-8">
+              <h2 className="pb-1 text-lg font-bold text-muted">Non serve questa settimana</h2>
+              {notDue.map(({ staple, inWeeks }) => (
+                <div key={staple.id} className="flex min-h-12 items-center justify-between gap-3 border-t border-line py-2">
+                  <span className="text-[15px] text-muted">{staple.name}</span>
+                  <span className="text-sm whitespace-nowrap text-muted">
+                    {inWeeks === null ? '' : inWeeks === 1 ? 'dalla prossima' : `fra ${inWeeks} sett.`}
+                  </span>
+                </div>
+              ))}
+            </section>
           )}
         </main>
       </div>
