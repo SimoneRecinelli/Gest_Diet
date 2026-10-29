@@ -17,65 +17,12 @@ const OWNERS: Owner[] = [
     categories: [
       {
         id: 'colazione_spuntini',
-        title: 'Colazione & Spuntini',
+        title: 'Da comprare',
         items: [
-          { id: 1, name: "Latte Parzialmente Scremato Zymil", qty: "4 Litri" },
+          { id: 1, name: "Latte Parzialmente Scremato Zymil (senza lattosio)", qty: "4 Litri" },
           { id: 2, name: "Yogurt Banana Zymil", qty: "7 Vasi" },
           { id: 3, name: "Yogurt Fruyo (Vaniglia/Stracciatella)", qty: "2 Vasi" },
           { id: 4, name: "Cereali Nesquik o Muesli", qty: "2 Conf." },
-          { id: 5, name: "Pane comune & Cornetti", qty: "A consumo" },
-          { id: 6, name: "Nutella", qty: "1 Vaso" },
-        ],
-      },
-      {
-        id: 'pranzo_freschi',
-        title: 'Pranzo & Freschi',
-        items: [
-          { id: 7, name: "Pasta di Semola (De Cecco)", qty: "1 Pacco (500g)" },
-          { id: 8, name: "Tortellini Freschi", qty: "1 Conf." },
-          { id: 9, name: "Fagioli Borlotti in scatola", qty: "1 Barattolo" },
-          { id: 10, name: "Uova", qty: "1 Conf. da 6" },
-          { id: 11, name: "Bresaola", qty: "100g" },
-          { id: 12, name: "Mozzarella senza lattosio / Sottilette", qty: "2 Conf." },
-          { id: 13, name: "Parmigiano / Grana Grattugiato", qty: "200g" },
-        ],
-      },
-      {
-        id: 'frutta_verdura',
-        title: 'Frutta & Verdura',
-        items: [
-          { id: 14, name: "Verdure Fresche & Carote", qty: "1.5 kg" },
-          { id: 15, name: "Banane o Mele", qty: "10 Frutti" },
-          { id: 16, name: "Frutta alternativa (Fragole, Ananas...)", qty: "A scelta" },
-        ],
-      },
-      {
-        id: 'condimenti_simone',
-        title: 'Salse Personali',
-        items: [{ id: 17, name: "Salsa Barbecue (Biffi/Heinz)", qty: "1 Conf. (ogni 3 sett.)" }],
-      },
-    ],
-  },
-  {
-    id: 'nonna',
-    label: 'Nonna Maria',
-    categories: [
-      {
-        id: 'cena',
-        title: 'Cena',
-        items: [
-          { id: 18, name: "Petto di Pollo", qty: "600g" },
-          { id: 19, name: "Rana pescatrice (o Sogliola, Palombo, Insalata mare, Salmone aff.)", qty: "600g" },
-          { id: 20, name: "Vitellone magro", qty: "300g" },
-        ],
-      },
-      {
-        id: 'condimenti_nonna',
-        title: 'Condimenti & Salse (Scorte)',
-        items: [
-          { id: 21, name: "Olio Extra Vergine di Oliva", qty: "Scorta in litri" },
-          { id: 22, name: "Sugo Pomodoro, Tonno, Melanzane, Salsiccia", qty: "Vari" },
-          { id: 23, name: "Crema di Zucchine", qty: "1 Conf." },
         ],
       },
     ],
@@ -175,6 +122,7 @@ export default function ListaSpesa() {
               style={{ width: `${progress}%` }}
             />
           </div>
+          {OWNERS.length > 1 && (
           <div className="mt-4 flex gap-1 rounded-2xl bg-surface p-1">
             {OWNERS.map((o, i) => (
               <button
@@ -190,6 +138,7 @@ export default function ListaSpesa() {
               </button>
             ))}
           </div>
+          )}
         </header>
 
         <main className="px-5">
@@ -217,7 +166,7 @@ export default function ListaSpesa() {
                 onClick={resetOwner}
                 className="mt-2 min-h-12 w-full border-t border-line text-[15px] font-semibold text-brand"
               >
-                Azzera la lista di {owner.label}
+                Azzera la lista
               </button>
             </section>
           )}
