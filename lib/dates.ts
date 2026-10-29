@@ -40,6 +40,32 @@ export function weekKeys(key: string): string[] {
   return DAYS.map((_, i) => addDays(monday, i));
 }
 
+// Giorni di distanza tra due date (b - a), negativo se b è prima di a
+export function daysBetween(a: string, b: string): number {
+  return Math.round((fromKey(b).getTime() - fromKey(a).getTime()) / 86_400_000);
+}
+
+// "12 ott"
+export function formatDayMonth(key: string): string {
+  return fromKey(key)
+    .toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })
+    .replace('.', '');
+}
+
+// "22 feb 2027"
+export function formatShortDate(key: string): string {
+  return fromKey(key)
+    .toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' })
+    .replace('.', '');
+}
+
+// "lun 19 ott"
+export function formatWeekdayDate(key: string): string {
+  return fromKey(key)
+    .toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' })
+    .replace(/\./g, '');
+}
+
 export function dayOfMonth(key: string): number {
   return fromKey(key).getDate();
 }

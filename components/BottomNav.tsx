@@ -1,6 +1,7 @@
+import type { ReactNode } from 'react';
 import Link from 'next/link';
 
-type Tab = 'oggi' | 'spesa';
+type Tab = 'oggi' | 'peso' | 'spesa';
 
 const iconProps = {
   width: 24,
@@ -23,6 +24,15 @@ function HomeIcon() {
   );
 }
 
+function TrendIcon() {
+  return (
+    <svg {...iconProps}>
+      <path d="m3 7 6 6 4-4 8 8" />
+      <path d="M15 17h6v-6" />
+    </svg>
+  );
+}
+
 function BagIcon() {
   return (
     <svg {...iconProps}>
@@ -32,8 +42,9 @@ function BagIcon() {
   );
 }
 
-const TABS: { id: Tab; href: string; label: string; icon: React.ReactNode }[] = [
+const TABS: { id: Tab; href: string; label: string; icon: ReactNode }[] = [
   { id: 'oggi', href: '/', label: 'Oggi', icon: <HomeIcon /> },
+  { id: 'peso', href: '/peso', label: 'Peso', icon: <TrendIcon /> },
   { id: 'spesa', href: '/spesa', label: 'Spesa', icon: <BagIcon /> },
 ];
 

@@ -5,6 +5,19 @@ export function formatNumber(n: number): string {
   return intFormat.format(n);
 }
 
+const kgFormat = new Intl.NumberFormat('it-IT', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+// 88.4 -> "88,4"
+export function formatKg(n: number): string {
+  return kgFormat.format(n);
+}
+
+// Con segno esplicito: -1.5 -> "−1,5", 0.3 -> "+0,3"
+export function formatKgSigned(n: number): string {
+  if (Math.abs(n) < 0.05) return '0,0';
+  return `${n < 0 ? '−' : '+'}${kgFormat.format(Math.abs(n))}`;
+}
+
 // Postgres restituisce i NUMERIC come testo ("80.00"): lo riportiamo a "80"
 export function formatQty(value: number | string, unit: string): string {
   const n = Number(value);

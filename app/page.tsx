@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import BottomNav from '../components/BottomNav';
 import { DAYS, dayIdOf, dayOfMonth, formatLong, weekKeys } from '../lib/dates';
 import { formatNumber, formatQty, spoonsLabel } from '../lib/format';
@@ -13,6 +14,7 @@ import {
   type DietItem,
 } from '../lib/meals';
 import { useClock } from '../lib/use-clock';
+import type { WeightData } from '../lib/weight';
 
 function Chevron({ open }: { open: boolean }) {
   return (
@@ -287,6 +289,28 @@ export default function Dashboard() {
     };
   }, [ready, selectedDay, attempt]);
 
+  // Date delle pesate registrate, per il promemoria del lunedì (se la richiesta fallisce, niente promemoria)
+  const [weighIns, setWeighIns] = useState<string[] | null>(null);
+  useEffect(() => {
+    if (!ready) return;
+    let cancelled = false;
+    fetch('/api/weight')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: WeightData | null) => {
+        if (!cancelled && data && Array.isArray(data.entries)) {
+          setWeighIns(data.entries.map((e) => e.measured_on));
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [ready]);
+
+  // Promemoria da lunedì a mercoledì finché la pesata della settimana manca
+  const weighedThisWeek = weighIns !== null && keys !== null && weighIns.some((d) => keys.includes(d));
+  const showWeighReminder = weighIns !== null && keys !== null && !weighedThisWeek && todayId <= 3;
+
   const loading = !ready || result.day !== selectedDay || result.attempt !== attempt;
   const failed = !loading && result.items === null;
   const groups = useMemo(() => (result.items ? groupByMeal(result.items) : []), [result.items]);
@@ -355,6 +379,33 @@ export default function Dashboard() {
             );
           })}
         </nav>
+
+        {showWeighReminder && (
+          <Link
+            href="/peso"
+            className="mx-5 mt-3 flex min-h-14 items-center justify-between gap-3 rounded-[20px] bg-tint px-[18px] py-3 text-brand-ink"
+          >
+            <span className="text-[15px] font-semibold">
+              {todayId === 1
+                ? 'È lunedì: registra il peso'
+                : 'Questa settimana non hai ancora registrato il peso'}
+            </span>
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+              className="shrink-0"
+            >
+              <path d="m9 6 6 6-6 6" />
+            </svg>
+          </Link>
+        )}
 
         {!loading && groups.length > 0 && (
           <div className="mx-5 mt-3 flex items-center justify-between rounded-[20px] bg-surface px-[18px] py-4">
