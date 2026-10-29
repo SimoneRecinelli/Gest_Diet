@@ -214,7 +214,7 @@ export default function Peso() {
   return (
     <div className="min-h-dvh bg-white pb-[calc(6rem+env(safe-area-inset-bottom))]">
       <div className="mx-auto w-full max-w-xl">
-        <header className="px-5 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-1">
+        <header className="px-5 pt-[calc(env(safe-area-inset-top)+3rem)] pb-1">
           <p className="min-h-6 text-base font-semibold text-ink/75">
             {summary ? `Partenza ${formatKg(summary.points[0].kg)} kg · ${formatShortDate(summary.points[0].date)}` : ''}
           </p>
