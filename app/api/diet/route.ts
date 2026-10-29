@@ -15,6 +15,8 @@ export async function GET(request: Request) {
         dpi.quantity_numeric,
         dpi.quantity_unit,
         dpi.is_cheat_meal,
+        dpi.kcal,
+        dpi.food_category,
         COALESCE(
           json_agg(
             json_build_object(

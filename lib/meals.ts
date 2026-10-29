@@ -7,10 +7,16 @@ export type DietItem = {
   quantity_numeric: number | string;
   quantity_unit: string;
   is_cheat_meal: boolean;
-  // Non è ancora nella query di /api/diet: se arriva, la UI mostra le kcal
   kcal?: number | string | null;
+  food_category?: string | null;
   alternatives: Alternative[];
 };
+
+// Se un pasto ha il "Pasto libero a scelta", la riga generica "Pasto Libero (Budget...)" è ridondante
+export function hideRedundantFreeMeal(items: DietItem[]): DietItem[] {
+  if (!items.some(isFreeMealChooser)) return items;
+  return items.filter((i) => isFreeMealChooser(i) || !/pasto\s+libero/i.test(i.food_name));
+}
 
 export type MealGroup = { name: string; items: DietItem[] };
 
@@ -23,7 +29,7 @@ export function groupByMeal(items: DietItem[]): MealGroup[] {
     if (existing) existing.items.push(item);
     else groups.push({ name: item.meal_name, items: [item] });
   }
-  return groups;
+  return groups.map((g) => ({ ...g, items: hideRedundantFreeMeal(g.items) }));
 }
 
 export function mealKcal(items: DietItem[]): number {

@@ -35,7 +35,17 @@ function Chevron({ open }: { open: boolean }) {
   );
 }
 
-function FoodIcon({ name, tinted, small }: { name: string; tinted?: boolean; small?: boolean }) {
+function FoodIcon({
+  name,
+  category,
+  tinted,
+  small,
+}: {
+  name: string;
+  category?: string | null;
+  tinted?: boolean;
+  small?: boolean;
+}) {
   return (
     <span
       aria-hidden="true"
@@ -43,7 +53,7 @@ function FoodIcon({ name, tinted, small }: { name: string; tinted?: boolean; sma
         small ? 'size-8 rounded-lg text-lg' : 'size-10 rounded-xl text-[22px]'
       } ${tinted ? 'bg-white' : 'bg-surface'}`}
     >
-      {getFoodIcon(name)}
+      {getFoodIcon(name, category)}
     </span>
   );
 }
@@ -65,7 +75,7 @@ function ItemRow({ item, tinted }: { item: DietItem; tinted: boolean }) {
       }`}
     >
       <div className="flex min-w-0 items-center gap-3 py-2">
-        <FoodIcon name={item.food_name} tinted={tinted} />
+        <FoodIcon name={item.food_name} category={item.food_category} tinted={tinted} />
         <div className="flex flex-col gap-0.5">
           <span className="text-base font-medium">{item.food_name}</span>
           {spoons && <span className="text-sm text-muted">{spoons}</span>}
