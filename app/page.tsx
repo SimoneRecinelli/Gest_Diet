@@ -409,14 +409,14 @@ export default function Dashboard() {
       onTouchEnd={onTouchEnd}
     >
       <div className="mx-auto w-full max-w-xl">
-        <header className="flex items-center justify-between px-5 pt-[calc(env(safe-area-inset-top)+1rem)] pb-1">
+        <header className="flex items-center justify-between px-5 pt-[calc(env(safe-area-inset-top)+2rem)] pb-1">
           <div>
-            <h1 className="text-[32px] leading-tight font-extrabold tracking-tight">
-              {isToday && ready ? 'Oggi' : dayName}
-            </h1>
-            <p className="mt-0.5 min-h-6 text-base font-semibold text-ink/75">
+            <p className="min-h-6 text-base font-semibold text-ink/75">
               {selectedKey ? formatLong(selectedKey) : ''}
             </p>
+            <h1 className="mt-0.5 text-[32px] leading-tight font-extrabold tracking-tight">
+              {isToday && ready ? 'Oggi' : dayName}
+            </h1>
           </div>
           <div
             aria-hidden="true"

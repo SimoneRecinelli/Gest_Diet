@@ -217,11 +217,11 @@ export default function Peso() {
   return (
     <div className="min-h-dvh bg-page pb-[calc(6rem+env(safe-area-inset-bottom))]">
       <div className="mx-auto w-full max-w-xl">
-        <header className="px-5 pt-[calc(env(safe-area-inset-top)+1rem)] pb-1">
-          <h1 className="text-[32px] leading-tight font-extrabold tracking-tight">Peso</h1>
-          <p className="mt-0.5 min-h-6 text-base font-semibold text-ink/75">
+        <header className="px-5 pt-[calc(env(safe-area-inset-top)+2rem)] pb-1">
+          <p className="min-h-6 text-base font-semibold text-ink/75">
             {summary ? `Partenza ${formatKg(summary.points[0].kg)} kg · ${formatShortDate(summary.points[0].date)}` : ''}
           </p>
+          <h1 className="mt-0.5 text-[32px] leading-tight font-extrabold tracking-tight">Peso</h1>
         </header>
 
         {(loading || !todayKey) && <Skeleton />}
