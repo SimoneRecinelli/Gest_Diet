@@ -341,7 +341,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-dvh bg-white pb-[calc(6rem+env(safe-area-inset-bottom))]">
       <div className="mx-auto w-full max-w-xl">
-        <header className="flex items-center justify-between px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-1">
+        <header className="flex items-center justify-between px-5 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-1">
           <div>
             <p className="min-h-5 text-sm font-medium text-muted">
               {selectedKey ? formatLong(selectedKey) : ''}

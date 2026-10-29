@@ -28,7 +28,15 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="it" className={`${inter.variable} h-full antialiased`}>
-      <body className="min-h-full font-sans">{children}</body>
+      <body className="min-h-full font-sans">
+        {/* Copre la zona dell'orologio/notch: niente testo che scorre sotto la barra di stato */}
+        <div
+          aria-hidden
+          className="pointer-events-none fixed inset-x-0 top-0 z-30 bg-white"
+          style={{ height: "env(safe-area-inset-top)" }}
+        />
+        {children}
+      </body>
     </html>
   );
 }
