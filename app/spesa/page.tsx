@@ -98,7 +98,7 @@ export default function ListaSpesa() {
   }
 
   return (
-    <div className="min-h-dvh bg-page pb-[calc(6rem+env(safe-area-inset-bottom))]">
+    <div className="min-h-dvh bg-page pb-[calc(7.5rem+env(safe-area-inset-bottom))]">
       <div className="mx-auto w-full max-w-xl">
         <header className="sticky top-0 z-10 border-b border-line bg-page px-5 pt-[calc(env(safe-area-inset-top)+2rem)] pb-4">
           <div className="flex items-baseline justify-between">

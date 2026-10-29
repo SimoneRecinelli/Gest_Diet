@@ -215,7 +215,7 @@ export default function Peso() {
   const pace = summary ? paceLabel(summary.requiredPerWeek) : null;
 
   return (
-    <div className="min-h-dvh bg-page pb-[calc(6rem+env(safe-area-inset-bottom))]">
+    <div className="min-h-dvh bg-page pb-[calc(7.5rem+env(safe-area-inset-bottom))]">
       <div className="mx-auto w-full max-w-xl">
         <header className="px-5 pt-[calc(env(safe-area-inset-top)+2rem)] pb-1">
           <p className="min-h-6 text-base font-semibold text-ink/75">

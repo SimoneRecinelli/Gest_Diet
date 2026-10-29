@@ -404,7 +404,7 @@ export default function Dashboard() {
 
   return (
     <div
-      className="min-h-dvh bg-page pb-[calc(6rem+env(safe-area-inset-bottom))]"
+      className="min-h-dvh bg-page pb-[calc(7.5rem+env(safe-area-inset-bottom))]"
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >
