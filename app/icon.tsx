@@ -18,6 +18,8 @@ export default function Icon() {
         }}
       >
         <svg 
+          style={{ transform: "translateY(-11px)" }}
+          
           width="240" 
           height="240" 
           viewBox="0 0 24 24" 

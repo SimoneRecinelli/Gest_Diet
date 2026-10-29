@@ -17,6 +17,8 @@ export default function AppleIcon() {
         }}
       >
         <svg 
+          style={{ transform: "translateY(-4px)" }}
+          
           width="90" 
           height="90" 
           viewBox="0 0 24 24" 

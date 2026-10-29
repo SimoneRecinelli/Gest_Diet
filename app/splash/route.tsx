@@ -32,6 +32,7 @@ export async function GET(request: Request) {
           }}
         >
           <svg
+            style={{ transform: `translateY(${-Math.round(tile * 0.47 * 0.045)}px)` }}
             width={Math.round(tile * 0.47)}
             height={Math.round(tile * 0.47)}
             viewBox="0 0 24 24"
