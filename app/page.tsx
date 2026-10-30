@@ -9,7 +9,6 @@ import { getFoodIcon } from '../lib/food-icons';
 import {
   groupByMeal,
   isFreeMealChooser,
-  mealKcal,
   nextMealName,
   oilSummary,
   type DietItem,
@@ -79,7 +78,7 @@ function ItemRow({ item, tinted }: { item: DietItem; tinted: boolean }) {
       <div className="flex min-w-0 items-center gap-3 py-2">
         <FoodIcon name={item.food_name} category={item.food_category} tinted={tinted} />
         <div className="flex flex-col gap-0.5">
-          <span className="text-base font-medium">{item.food_name}</span>
+          <span className="text-base font-medium">{item.food_name.replace(/\s*\(Budget[^)]*\)/i, "")}</span>
           {spoons && <span className="text-sm text-muted">{spoons}</span>}
         </div>
       </div>
@@ -190,7 +189,7 @@ function CheatBanner({ item }: { item: DietItem }) {
       <span aria-hidden="true" className="mb-1 block text-3xl">
         🍕
       </span>
-      <p className="text-lg font-bold text-brand-ink">{item.food_name}</p>
+      <p className="text-lg font-bold text-brand-ink">{item.food_name.replace(/\s*\(Budget[^)]*\)/i, "")}</p>
       <p className="mt-1 text-sm font-medium text-brand-ink">Goditi il pasto libero!</p>
     </div>
   );
@@ -205,7 +204,6 @@ function MealSection({
   items: DietItem[];
   highlighted: boolean;
 }) {
-  const kcal = mealKcal(items);
   const hasFreeMeal = items.some((i) => i.is_cheat_meal || isFreeMealChooser(i));
 
   return (
@@ -221,15 +219,6 @@ function MealSection({
           {highlighted && <Chip>Prossimo</Chip>}
           {hasFreeMeal && <Chip>Pasto libero</Chip>}
         </div>
-        {kcal > 0 && (
-          <span
-            className={`whitespace-nowrap text-sm font-semibold ${
-              highlighted ? 'text-brand-ink' : 'text-muted'
-            }`}
-          >
-            ~{formatNumber(kcal)} kcal
-          </span>
-        )}
       </div>
 
       {items.map((item) => {
@@ -271,7 +260,7 @@ function OilRecap({ oil }: { oil: ReturnType<typeof oilSummary> }) {
   };
 
   return (
-    <div className="mx-5 mt-2 flex items-start gap-3 rounded-[20px] bg-surface px-[18px] py-4">
+    <div className="mx-5 mt-3 flex items-start gap-3 rounded-[20px] bg-surface px-[18px] py-4">
       <span
         aria-hidden="true"
         className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-page text-[22px]"
@@ -373,7 +362,6 @@ export default function Dashboard() {
         )
       : null;
 
-  const totalKcal = groups.reduce((sum, g) => sum + mealKcal(g.items), 0);
   const oil = useMemo(() => oilSummary(groups), [groups]);
 
   const goToDay = useCallback((day: number) => {
@@ -486,26 +474,6 @@ export default function Dashboard() {
               <path d="m9 6 6 6-6 6" />
             </svg>
           </Link>
-        )}
-
-        {!loading && groups.length > 0 && (
-          <div className="mx-5 mt-3 flex items-center justify-between rounded-[20px] bg-surface px-[18px] py-4">
-            <div>
-              <p className="text-sm font-medium text-muted">
-                {totalKcal > 0 ? 'Totale del giorno' : 'Giornata'}
-              </p>
-              <p className="mt-0.5 text-[26px] font-extrabold tracking-tight">
-                {totalKcal > 0
-                  ? `${formatNumber(totalKcal)} kcal`
-                  : `${groups.length} ${groups.length === 1 ? 'pasto' : 'pasti'}`}
-              </p>
-            </div>
-            {totalKcal > 0 && (
-              <span className="rounded-full bg-brand-soft px-3 py-1.5 text-sm font-semibold text-brand-ink">
-                {groups.length} {groups.length === 1 ? 'pasto' : 'pasti'}
-              </span>
-            )}
-          </div>
         )}
 
         {!loading && groups.length > 0 && <OilRecap oil={oil} />}
