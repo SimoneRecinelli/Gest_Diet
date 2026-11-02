@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import BottomNav from '../../components/BottomNav';
-import PushToggle from '../../components/PushToggle';
 import WeightChart from '../../components/WeightChart';
 import {
   addDays,
@@ -562,8 +561,6 @@ export default function Peso() {
                 })}
               </ul>
             </section>
-
-            <PushToggle />
           </>
         )}
       </div>

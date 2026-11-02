@@ -1,3 +1,0 @@
-{
-  "crons": [{ "path": "/api/cron/weigh-in", "schedule": "0 7 * * 1-3" }]
-}
